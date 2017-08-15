@@ -5,12 +5,13 @@
 # based on Ganesh V BitBar script (https://github.com/ganeshv/mtop)
 # and Leo-G script (https://github.com/Leo-G/DevopsWiki/wiki/How-Linux-CPU-Usage-Time-and-Percentage-is-calculated)
 # author: fadeouter (https://github.com/fadeouter/)
+# author: bluespy (https://github.com/bluespy/)
 
 
 
 # IMPORTANT! Go to line 114 and set your number of CPU cores
 
-graphWidth="50"           # CPU chart width in pixels, also a number of chart points
+graphWidth="30"           # CPU chart width in pixels, also a number of chart points
 scale="1"				          # if you have HIDPI screen, set appropriate coeff. for scaling
 svg_font_size="9"			    # probably you won't change this
 svg_font_family="Ubuntu"  # set as GNOME Shell theme font
@@ -45,7 +46,7 @@ diskbar_font="#ffffff"			      # font color of disk used space
 diskbar_font_highlighted="#7eff35"	# font color of disk free space
 diskbar_bg_color=$pie_bg_color		# disk bar bg color
 
-	
+
 ### SIZES AND POSITION OF SVG OBJECTS
 
 icon_h=$(expr 12 \* $scale)
@@ -103,8 +104,6 @@ mempie=$(echo "<svg xmlns='http://www.w3.org/2000/svg' width='$icon_h' height='$
 
 swappie=$(echo "<svg xmlns='http://www.w3.org/2000/svg' width='$icon_h' height='$icon_h' viewBox='0 0 94.997788 94.997783' transform='translate($icon_h,0) scale(-1,1)'><circle cx='47.5' cy='47.5' r='47.5' fill='$pie_bg_color' /><circle cx='47.5' cy='47.5' r='9' fill='$pie_fg_color' /><path d='M47.499 19.844c15.273 0 27.655 12.381 27.655 27.655 0 15.273-12.382 27.655-27.655 27.655-15.274 0-27.655-12.382-27.655-27.655 0-15.273 12.381-27.655 27.655-27.655' fill='none' stroke='$pie_fg_color' stroke-width='39.688' stroke-dasharray='174' stroke-dashoffset='$swapPercentPie' /></svg>"  | base64 -w 0)
 
-
-
 ################################################################
 #
 #  02. CPU graph calculation
@@ -152,23 +151,24 @@ echo "$TOTAL   $IDLE    $USER    $IO    $CPU   $CPU_USER   $CPU_IO" >> "${HISTOR
 
 
 COUNTER=0
-while [ $COUNTER -lt $graphWidth ]; do    
+while [ $COUNTER -lt $graphWidth ]; do
     fullCpuBar=$(sed -n $COUNTER\p ${HISTORY_FILE} | awk '{print $5}')
     ioCpuBar=$(sed -n $COUNTER\p ${HISTORY_FILE} | awk '{print ($5-$7)}')
     userCpuBar=$(sed -n $COUNTER\p ${HISTORY_FILE} | awk '{print $6}')
     old_string=$svg_string
     new_string="<path fill='none' stroke='$chart_system_color' stroke-width='1' d='M$COUNTER,0 $COUNTER,$fullCpuBar'/><path fill='none' stroke='$chart_io_color' stroke-width='1' d='M$COUNTER,$ioCpuBar $COUNTER,$fullCpuBar'/><path fill='none' stroke='$chart_user_color' stroke-width='1' d='M$COUNTER,0 $COUNTER,$userCpuBar'/>"
     svg_string=$old_string$new_string
-    let COUNTER=COUNTER+1 
+    let COUNTER=COUNTER+1
 done
-         
-cpu_icon=$(echo "<svg xmlns='http://www.w3.org/2000/svg' width='$graph_svg_w' height='100' viewBox='0 0 $graph_svg_w 100'> <g transform='translate(0,100) scale(1,-1)'> 
+
+cpu_icon=$(echo "<svg xmlns='http://www.w3.org/2000/svg' width='$graph_svg_w' height='100' viewBox='0 0 $graph_svg_w 100'> <g transform='translate(0,100) scale(1,-1)'>
 $svg_string
 <g transform='translate($mem_bar_pos,0)'><path fill='none' stroke='$chart_system_color' stroke-width='4' d='M0,0 0,$memPercent'/>
 <path fill='none' stroke='$chart_system_color' stroke-width='4' d='M7,0 7,$swapPercent'/>
-</g></g></svg>" | base64 -w 0) 
+</g></g></svg>" | base64 -w 0)
 
-
+cpuPercentPie=$(awk "BEGIN {print 174 + ($CPU/100 * 174);exit} ")
+cpupie=$(echo "<svg xmlns='http://www.w3.org/2000/svg' width='$icon_h' height='$icon_h' viewBox='0 0 94.997788 94.997783' transform='translate($icon_h,0) scale(-1,1)'><circle cx='47.5' cy='47.5' r='47.5' fill='$pie_bg_color' /><circle cx='47.5' cy='47.5' r='9' fill='$pie_fg_color' /><path d='M47.499 19.844c15.273 0 27.655 12.381 27.655 27.655 0 15.273-12.382 27.655-27.655 27.655-15.274 0-27.655-12.382-27.655-27.655 0-15.273 12.381-27.655 27.655-27.655' fill='none' stroke='$pie_fg_color' stroke-width='39.688' stroke-dasharray='174' stroke-dashoffset='$cpuPercentPie' /></svg>"  | base64 -w 0)
 
 ################################################################
 #
@@ -193,11 +193,11 @@ if [ "$showPercents" == "%off" ]; then
 fi
 
 
-echo "$IMAGE_CPU| image=$cpu_icon imageHeight=$graph_h imageWidth=$graph_svg_w" 
+echo "$IMAGE_CPU| image=$cpu_icon imageHeight=$graph_h imageWidth=$graph_svg_w"
 
 echo "---"
 
-echo "<span color='$text_muted'>CPU </span>\t$CPU% | iconName=utilities-system-monitor"
+echo "<span color='$text_muted'>CPU </span>\t$CPU% | image=$cpupie imageHeight=$icon_h"
 echo "<span color='$text_muted'>Mem</span>\t${mem_used%%.*} / ${mem_full%%.*} MiB | image=$mempie imageHeight=$icon_h"
 echo "<span color='$text_muted'>Swap</span>\t${swap_used%%.*} / ${swap_full%%.*} MiB | image=$swappie imageHeight=$icon_h"
 echo "<span color='$text_muted'>Temp</span>\t$temp C° | imageHeight=$icon_h image=PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMzUuNDY2NjcgMTM1LjQ2NjY3JyBoZWlnaHQ9JzY0JyB3aWR0aD0nNjQnPjxkZWZzPjxtYXJrZXIgb3JpZW50PSdhdXRvJyBpZD0nYicgb3ZlcmZsb3c9J3Zpc2libGUnPjxwYXRoIGQ9J00uOTggMGExIDEgMCAxIDEtMiAwIDEgMSAwIDAgMSAyIDB6JyBmaWxsPScjZjU1JyBmaWxsLXJ1bGU9J2V2ZW5vZGQnIHN0cm9rZT0nI2Y1NScgc3Ryb2tlLXdpZHRoPScuMjY3Jy8+PC9tYXJrZXI+PG1hcmtlciBvcmllbnQ9J2F1dG8nIGlkPSdhJyBvdmVyZmxvdz0ndmlzaWJsZSc+PHBhdGggZD0nTS45OCAwYTEgMSAwIDEgMS0yIDAgMSAxIDAgMCAxIDIgMHonIGZpbGw9JyNjY2MnIGZpbGwtcnVsZT0nZXZlbm9kZCcgc3Ryb2tlPScjY2NjJyBzdHJva2Utd2lkdGg9Jy4yNjcnLz48L21hcmtlcj48L2RlZnM+PGcgc3Ryb2tlLXdpZHRoPScxNC43NzknPjxwYXRoIGQ9J002Ni4zNzggMTEyLjU5NmMuMDEzLTMxLjcyNi4wMjctNS42My4wNC05NS4yMzUnIGZpbGw9JyNjY2MnIHN0cm9rZT0nI2NjYycgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBtYXJrZXItc3RhcnQ9J3VybCgjYSknIHRyYW5zZm9ybT0ndHJhbnNsYXRlKC0xLjE4MiAtNC42ODcpIHNjYWxlKDEuMDM4MjQpJy8+PHBhdGggZD0nTTY2LjM3OCAxMTIuNTk2Yy4wMi0xNi4zMzguMDQtMi45LjA2LTQ5LjA0MycgZmlsbD0nI2Y1NScgc3Ryb2tlPScjZjU1JyBtYXJrZXItc3RhcnQ9J3VybCgjYiknIHRyYW5zZm9ybT0ndHJhbnNsYXRlKC0xLjE4MiAtNC42ODcpIHNjYWxlKDEuMDM4MjQpJy8+PC9nPjwvc3ZnPgo=c@t"
